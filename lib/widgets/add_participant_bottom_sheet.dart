@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../domain/participant.dart';
 
 class AddParticipantBottomSheet extends StatefulWidget {
   const AddParticipantBottomSheet({super.key});
@@ -38,11 +37,16 @@ class _AddParticipantBottomSheetState extends State<AddParticipantBottomSheet> {
     });
 
     try {
-      final participant = Participant(name: _nameController.text.trim());
-      Navigator.of(context).pop(participant);
+      final name = _nameController.text.trim();
+      Navigator.of(context).pop(name);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка при создании участника: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка при создании участника: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       setState(() {
