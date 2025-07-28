@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../domain/participant.dart';
+import '../domain/transaction.dart';
 import '../repositories/local_repository_impl.dart';
 import '../repositories/storage_keys.dart';
 
@@ -7,123 +8,114 @@ class HomeViewModel extends ChangeNotifier {
   final LocalRepositoryImpl _repository = LocalRepositoryImpl();
 
   List<Participant> _participants = [];
+  List<Transaction> _transactions = [];
   bool _isLoading = false;
   String? _error;
 
-  // Геттеры
+  // Геттеры для участников
   List<Participant> get participants => _participants;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  // Геттеры для транзакций
+  List<Transaction> get transactions => _transactions;
   bool get hasParticipants => _participants.isNotEmpty;
 
-  // Инициализация
-  Future<void> initialize() async {
-    await loadParticipants();
-  }
-
-  // Загрузка участников
+  // Методы для участников
   Future<void> loadParticipants() async {
     _setLoading(true);
-    _clearError();
-
     try {
-      final participants = await _repository.readList(StorageKeys.participants, (json) => Participant.fromJson(json));
-
-      _participants = participants;
-      notifyListeners();
+      _participants = await _repository.readList<Participant>(StorageKeys.participants, (json) => Participant.fromJson(json));
+      _clearError();
     } catch (e) {
-      _setError('Ошибка при загрузке участников: $e');
+      _setError('Ошибка загрузки участников: $e');
     } finally {
       _setLoading(false);
     }
   }
 
-  // Добавление участника
-  Future<bool> addParticipant(String name) async {
+  Future<void> addParticipant(String name) async {
     if (name.trim().isEmpty) {
       _setError('Имя участника не может быть пустым');
-      return false;
+      return;
     }
 
-    if (name.trim().length < 2) {
-      _setError('Имя должно содержать минимум 2 символа');
-      return false;
+    if (hasParticipantWithName(name.trim())) {
+      _setError('Участник с таким именем уже существует');
+      return;
     }
 
-    _setLoading(true);
-    _clearError();
+    final participant = Participant(name: name.trim());
+    _participants.add(participant);
 
     try {
-      final participant = Participant(name: name.trim());
+      await _repository.saveList(StorageKeys.participants, _participants, (participant) => participant.toJson());
+      _clearError();
+      notifyListeners();
+    } catch (e) {
+      _participants.remove(participant);
+      _setError('Ошибка сохранения участника: $e');
+      notifyListeners();
+    }
+  }
 
+  Future<void> deleteParticipant(Participant participant) async {
+    _participants.remove(participant);
+
+    try {
+      await _repository.saveList(StorageKeys.participants, _participants, (p) => p.toJson());
+      _clearError();
+      notifyListeners();
+    } catch (e) {
       _participants.add(participant);
+      _setError('Ошибка удаления участника: $e');
       notifyListeners();
-
-      await _repository.saveList(StorageKeys.participants, _participants, (p) => p.toJson());
-
-      return true;
-    } catch (e) {
-      _setError('Ошибка при добавлении участника: $e');
-      // Откатываем изменения в UI
-      _participants.removeLast();
-      notifyListeners();
-      return false;
-    } finally {
-      _setLoading(false);
     }
   }
 
-  // Удаление участника
-  Future<bool> deleteParticipant(Participant participant) async {
-    _setLoading(true);
-    _clearError();
+  // Методы для транзакций
+  Future<void> loadTransactions() async {
+    try {
+      _transactions = await _repository.readList<Transaction>(StorageKeys.transactions, (json) => Transaction.fromJson(json));
+      _clearError();
+    } catch (e) {
+      _setError('Ошибка загрузки транзакций: $e');
+    }
+  }
+
+  Future<void> addTransaction(Transaction transaction) async {
+    _transactions.add(transaction);
 
     try {
-      final initialLength = _participants.length;
-      _participants.removeWhere((p) => p.id == participant.id);
-
-      if (_participants.length == initialLength) {
-        _setError('Участник не найден');
-        return false;
-      }
-
+      await _repository.saveList(StorageKeys.transactions, _transactions, (t) => t.toJson());
+      _clearError();
       notifyListeners();
-
-      await _repository.saveList(StorageKeys.participants, _participants, (p) => p.toJson());
-
-      return true;
     } catch (e) {
-      _setError('Ошибка при удалении участника: $e');
-      // Пытаемся восстановить состояние
-      await loadParticipants();
-      return false;
-    } finally {
-      _setLoading(false);
+      _transactions.remove(transaction);
+      _setError('Ошибка сохранения транзакции: $e');
+      notifyListeners();
     }
   }
 
-  // Очистка всех данных
-  Future<void> clearAllData() async {
-    _setLoading(true);
-    _clearError();
+  Future<void> deleteTransaction(Transaction transaction) async {
+    _transactions.remove(transaction);
 
     try {
-      await _repository.clear(StorageKeys.participants);
-      _participants.clear();
+      await _repository.saveList(StorageKeys.transactions, _transactions, (t) => t.toJson());
+      _clearError();
       notifyListeners();
     } catch (e) {
-      _setError('Ошибка при очистке данных: $e');
-    } finally {
-      _setLoading(false);
+      _transactions.add(transaction);
+      _setError('Ошибка удаления транзакции: $e');
+      notifyListeners();
     }
   }
 
-  // Проверка существования участника с таким именем
+  // Вспомогательные методы
   bool hasParticipantWithName(String name) {
-    return _participants.any((p) => p.name.toLowerCase() == name.trim().toLowerCase());
+    return _participants.any((p) => p.name.toLowerCase() == name.toLowerCase());
   }
 
-  // Получение участника по ID
   Participant? getParticipantById(String id) {
     try {
       return _participants.firstWhere((p) => p.id == id);
@@ -132,7 +124,28 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Приватные методы для управления состоянием
+  Participant? getPayerById(String payerId) {
+    return getParticipantById(payerId);
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearAllData() async {
+    try {
+      await _repository.clear(StorageKeys.participants);
+      await _repository.clear(StorageKeys.transactions);
+      _participants.clear();
+      _transactions.clear();
+      _clearError();
+      notifyListeners();
+    } catch (e) {
+      _setError('Ошибка очистки данных: $e');
+    }
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -145,11 +158,5 @@ class HomeViewModel extends ChangeNotifier {
 
   void _clearError() {
     _error = null;
-    notifyListeners();
-  }
-
-  // Очистка ошибки (для вызова из UI)
-  void clearError() {
-    _clearError();
   }
 }

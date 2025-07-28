@@ -4,7 +4,7 @@ class Transaction {
   final double totalAmount; // общая сумма транзакции
   final Map<String, double> participantAmounts; // суммы по каждому участнику (ID -> сумма)
   final DateTime createdAt;
-  final String description; // описание транзакции
+  final String? description; // описание транзакции
 
   Transaction({
     required this.id,
@@ -12,7 +12,7 @@ class Transaction {
     required this.totalAmount,
     required this.participantAmounts,
     DateTime? createdAt,
-    required this.description,
+    this.description,
   }) : createdAt = createdAt ?? DateTime.now(),
        assert(_validateAmounts(totalAmount, participantAmounts));
 
