@@ -26,7 +26,11 @@ class Participant {
 
   // Создание из JSON
   factory Participant.fromJson(Map<String, dynamic> json) {
-    return Participant(id: json['id'], name: json['name'] ?? '', createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null);
+    return Participant(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
+    );
   }
 
   @override

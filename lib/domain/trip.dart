@@ -36,11 +36,11 @@ class Trip {
   // Создание из JSON
   factory Trip.fromJson(Map<String, dynamic> json) {
     return Trip(
-      id: json['id'],
-      name: json['name'] ?? '',
-      participants: (json['participants'] as List?)?.map((p) => Participant.fromJson(p)).toList() ?? <Participant>[],
-      transactions: (json['transactions'] as List?)?.map((t) => Transaction.fromJson(t)).toList() ?? <Transaction>[],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      participants: (json['participants'] as List<dynamic>?)?.map((p) => Participant.fromJson(p as Map<String, dynamic>)).toList() ?? <Participant>[],
+      transactions: (json['transactions'] as List<dynamic>?)?.map((t) => Transaction.fromJson(t as Map<String, dynamic>)).toList() ?? <Transaction>[],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
     );
   }
 

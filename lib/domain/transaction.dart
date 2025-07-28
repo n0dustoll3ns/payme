@@ -56,13 +56,36 @@ class Transaction {
   // Создание из JSON
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
-      id: json['id'],
-      payerId: json['payerId'] ?? '',
-      totalAmount: json['totalAmount']?.toDouble() ?? 0.0,
-      participantAmounts: (json['participantAmounts'])?.map((k, v) => MapEntry(k, v.toDouble())) ?? <String, double>{},
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      description: json['description'] ?? '',
+      id: json['id'] as String? ?? '',
+      payerId: json['payerId'] as String? ?? '',
+      totalAmount: _parseDouble(json['totalAmount']),
+      participantAmounts: _parseParticipantAmounts(json['participantAmounts']),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
+      description: json['description'] as String?,
     );
+  }
+
+  // Вспомогательный метод для парсинга double
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  // Вспомогательный метод для парсинга Map<String, double>
+  static Map<String, double> _parseParticipantAmounts(dynamic value) {
+    if (value == null) return <String, double>{};
+    if (value is! Map) return <String, double>{};
+
+    final Map<String, double> result = <String, double>{};
+    value.forEach((key, value) {
+      if (key is String) {
+        result[key] = _parseDouble(value);
+      }
+    });
+    return result;
   }
 
   // Получение суммы для конкретного участника
