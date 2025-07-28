@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AddParticipantBottomSheet extends StatefulWidget {
-  const AddParticipantBottomSheet({super.key});
+  final Function(String) onSubmit;
+
+  const AddParticipantBottomSheet({super.key, required this.onSubmit});
 
   @override
   State<AddParticipantBottomSheet> createState() => _AddParticipantBottomSheetState();
@@ -36,7 +38,8 @@ class _AddParticipantBottomSheetState extends State<AddParticipantBottomSheet> {
 
     try {
       final name = _nameController.text.trim();
-      Navigator.of(context).pop(name);
+      widget.onSubmit(name);
+      Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка при создании участника: $e'), backgroundColor: Colors.red));

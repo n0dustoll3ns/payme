@@ -59,7 +59,7 @@ class Transaction {
       id: json['id'],
       payerId: json['payerId'] ?? '',
       totalAmount: json['totalAmount']?.toDouble() ?? 0.0,
-      participantAmounts: (json['participantAmounts'] as Map<String, double>?)?.map((k, v) => MapEntry(k, v.toDouble())) ?? <String, double>{},
+      participantAmounts: (json['participantAmounts'])?.map((k, v) => MapEntry(k, v.toDouble())) ?? <String, double>{},
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       description: json['description'] ?? '',
     );

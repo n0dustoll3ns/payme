@@ -1,11 +1,19 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../domain/participant.dart';
 import '../domain/transaction.dart';
 import '../repositories/local_repository_impl.dart';
 import '../repositories/storage_keys.dart';
+import '../widgets/add_participant_bottom_sheet.dart';
+import '../widgets/add_transaction_bottom_sheet.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final LocalRepositoryImpl _repository = LocalRepositoryImpl();
+
+  HomeViewModel() {
+    init();
+  }
 
   List<Participant> _participants = [];
   List<Transaction> _transactions = [];
@@ -21,16 +29,23 @@ class HomeViewModel extends ChangeNotifier {
   List<Transaction> get transactions => _transactions;
   bool get hasParticipants => _participants.isNotEmpty;
 
+  init() async {
+    _setLoading(true);
+
+    await loadParticipants();
+    await loadTransactions();
+    _setLoading(false);
+    notifyListeners();
+  }
+
   // Методы для участников
   Future<void> loadParticipants() async {
-    _setLoading(true);
     try {
       _participants = await _repository.readList<Participant>(StorageKeys.participants, (json) => Participant.fromJson(json));
       _clearError();
+      notifyListeners();
     } catch (e) {
       _setError('Ошибка загрузки участников: $e');
-    } finally {
-      _setLoading(false);
     }
   }
 
@@ -78,6 +93,7 @@ class HomeViewModel extends ChangeNotifier {
     try {
       _transactions = await _repository.readList<Transaction>(StorageKeys.transactions, (json) => Transaction.fromJson(json));
       _clearError();
+      notifyListeners();
     } catch (e) {
       _setError('Ошибка загрузки транзакций: $e');
     }
@@ -108,6 +124,82 @@ class HomeViewModel extends ChangeNotifier {
       _transactions.add(transaction);
       _setError('Ошибка удаления транзакции: $e');
       notifyListeners();
+    }
+  }
+
+  // Методы для работы с UI
+  Future<void> showAddParticipantDialog(BuildContext context) async {
+    await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddParticipantBottomSheet(onSubmit: (name) => addParticipant(name)),
+    );
+  }
+
+  Future<void> showAddTransactionDialog(BuildContext context) async {
+    // Проверяем, что есть минимум 2 участника
+    if (participants.length < 2) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Для добавления транзакции нужно минимум 2 участника'), backgroundColor: Colors.orange));
+      return;
+    }
+
+    final transaction = await showModalBottomSheet<Transaction>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddTransactionBottomSheet(participants: participants),
+    );
+
+    if (transaction != null) {
+      await addTransaction(transaction);
+    }
+  }
+
+  Future<void> showDeleteParticipantDialog(BuildContext context, Participant participant) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить участника'),
+        content: Text('Вы уверены, что хотите удалить "${participant.name}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Отмена')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await deleteParticipant(participant);
+      notifyListeners();
+    }
+  }
+
+  Future<void> showDeleteTransactionDialog(BuildContext context, Transaction transaction) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить транзакцию'),
+        content: Text('Вы уверены, что хотите удалить транзакцию "${transaction.description ?? 'Без описания'}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Отмена')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await deleteTransaction(transaction);
     }
   }
 

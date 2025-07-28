@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
-import 'viewmodels/home_view_model.dart';
 
 void main() {
   runApp(const PaymeApp());
@@ -37,7 +35,7 @@ class PaymeApp extends StatelessWidget {
           fillColor: const Color(0xFF1E1E1E),
         ),
       ),
-      home: ChangeNotifierProvider(create: (context) => HomeViewModel(), child: const HomeScreen()),
+      home: const HomeScreen(),
     );
   }
 }
