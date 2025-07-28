@@ -1,9 +1,0 @@
-<script>start("/Users/fominyhdenis/repos/my/payme/build/web/assets/");</script>
-<script>onHasParentDirectory();</script>
-<script>addRow("fonts","fonts",1,96,"96 B",1753716787,"28.07.2025, 18:33:07");</script>
-<script>addRow("shaders","shaders",1,96,"96 B",1753716787,"28.07.2025, 18:33:07");</script>
-<script>addRow("AssetManifest.bin","AssetManifest.bin",0,2,"2 B",1753716787,"28.07.2025, 18:33:07");</script>
-<script>addRow("AssetManifest.bin.json","AssetManifest.bin.json",0,6,"6 B",1753716787,"28.07.2025, 18:33:07");</script>
-<script>addRow("AssetManifest.json","AssetManifest.json",0,2,"2 B",1753716787,"28.07.2025, 18:33:07");</script>
-<script>addRow("FontManifest.json","FontManifest.json",0,82,"82 B",1753716787,"28.07.2025, 18:33:07");</script>
-<script>addRow("NOTICES","NOTICES",0,1666232,"1.6 MB",1753716787,"28.07.2025, 18:33:07");</script>
