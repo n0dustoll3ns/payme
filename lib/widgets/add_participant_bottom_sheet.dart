@@ -17,9 +17,7 @@ class _AddParticipantBottomSheetState extends State<AddParticipantBottomSheet> {
   void initState() {
     super.initState();
     // Устанавливаем фокус после построения виджета
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _nameFocusNode.requestFocus();
-    });
+    _nameFocusNode.requestFocus();
   }
 
   @override
@@ -41,12 +39,7 @@ class _AddParticipantBottomSheetState extends State<AddParticipantBottomSheet> {
       Navigator.of(context).pop(name);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка при создании участника: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка при создании участника: $e'), backgroundColor: Colors.red));
       }
     } finally {
       setState(() {
