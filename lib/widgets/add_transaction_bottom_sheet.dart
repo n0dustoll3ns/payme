@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:payme/domain/participant.dart';
+import 'package:payme/domain/transaction.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/add_transaction_view_model.dart';
 
 class AddTransactionBottomSheet extends StatefulWidget {
   final List<Participant> participants;
-  const AddTransactionBottomSheet({super.key, required this.participants});
+  final Transaction? transaction; // null для создания, не null для редактирования
+
+  const AddTransactionBottomSheet({super.key, required this.participants, this.transaction});
 
   @override
   State<AddTransactionBottomSheet> createState() => _AddTransactionBottomSheetState();
@@ -16,6 +19,16 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
   final _descriptionController = TextEditingController();
   final _totalAmountController = TextEditingController();
   final Map<String, TextEditingController> _participantControllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Если редактируем существующую транзакцию, заполняем поля
+    if (widget.transaction != null) {
+      _descriptionController.text = widget.transaction!.description ?? '';
+      _totalAmountController.text = widget.transaction!.totalAmount.toString();
+    }
+  }
 
   @override
   void dispose() {
@@ -29,8 +42,10 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.transaction != null;
+
     return ChangeNotifierProvider(
-      create: (context) => AddTransactionViewModel(),
+      create: (context) => AddTransactionViewModel()..initializeForEdit(widget.transaction),
       child: Consumer<AddTransactionViewModel>(
         builder: (context, viewModel, child) {
           return Container(
@@ -49,9 +64,12 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                     // Заголовок
                     Row(
                       children: [
-                        const Icon(Icons.receipt, color: Colors.green),
+                        Icon(isEditing ? Icons.edit : Icons.receipt, color: isEditing ? Colors.orange : Colors.green),
                         const SizedBox(width: 8),
-                        Text('Добавить транзакцию', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                        Text(
+                          isEditing ? 'Редактировать транзакцию' : 'Добавить транзакцию',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
                         const Spacer(),
                         IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
                       ],
@@ -212,13 +230,13 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                       ),
                     if (viewModel.error != null) const SizedBox(height: 16),
 
-                    // Кнопка добавления
+                    // Кнопка добавления/обновления
                     ElevatedButton(
                       onPressed: viewModel.isLoading ? null : () => _addTransaction(viewModel),
                       style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                       child: viewModel.isLoading
                           ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Добавить', style: TextStyle(fontSize: 16)),
+                          : Text(isEditing ? 'Обновить' : 'Добавить', style: const TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(height: 16),
                   ],

@@ -254,6 +254,7 @@ class TransactionsTab extends StatelessWidget {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
+                    onTap: () => homeViewModel.showAddTransactionDialog(context, transaction: transaction),
                     leading: CircleAvatar(
                       backgroundColor: Colors.green,
                       child: const Icon(Icons.receipt, color: Colors.white),

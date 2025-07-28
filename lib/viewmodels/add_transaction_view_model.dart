@@ -8,6 +8,7 @@ class AddTransactionViewModel extends ChangeNotifier {
   String? _description;
   String? _error;
   bool _isLoading = false;
+  Transaction? _editingTransaction; // для отслеживания редактируемой транзакции
 
   // Геттеры
   String? get selectedPayerId => _selectedPayerId;
@@ -16,11 +17,25 @@ class AddTransactionViewModel extends ChangeNotifier {
   String? get description => _description;
   String? get error => _error;
   bool get isLoading => _isLoading;
+  bool get isEditing => _editingTransaction != null;
 
   // Вычисляемое свойство для отклонения суммы
   double get amountDeviation {
     double sum = _participantAmounts.values.fold(0.0, (sum, amount) => sum + amount);
     return sum - _totalAmount;
+  }
+
+  // Инициализация для редактирования
+  void initializeForEdit(Transaction? transaction) {
+    if (transaction != null) {
+      _editingTransaction = transaction;
+      _selectedPayerId = transaction.payerId;
+      _totalAmount = transaction.totalAmount;
+      _description = transaction.description;
+      _participantAmounts.clear();
+      _participantAmounts.addAll(transaction.participantAmounts);
+      notifyListeners();
+    }
   }
 
   // Методы для изменения состояния
@@ -98,19 +113,30 @@ class AddTransactionViewModel extends ChangeNotifier {
     return true;
   }
 
-  // Создание транзакции
+  // Создание или обновление транзакции
   Transaction? createTransaction() {
     if (!validateForm()) {
       return null;
     }
 
-    return Transaction(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      payerId: _selectedPayerId!,
-      totalAmount: _totalAmount,
-      participantAmounts: Map.from(_participantAmounts),
-      description: _description?.trim().isEmpty == true ? null : _description?.trim(),
-    );
+    if (isEditing && _editingTransaction != null) {
+      // Обновляем существующую транзакцию
+      return _editingTransaction!.copyWith(
+        payerId: _selectedPayerId!,
+        totalAmount: _totalAmount,
+        participantAmounts: Map.from(_participantAmounts),
+        description: _description?.trim().isEmpty == true ? null : _description?.trim(),
+      );
+    } else {
+      // Создаем новую транзакцию
+      return Transaction(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        payerId: _selectedPayerId!,
+        totalAmount: _totalAmount,
+        participantAmounts: Map.from(_participantAmounts),
+        description: _description?.trim().isEmpty == true ? null : _description?.trim(),
+      );
+    }
   }
 
   // Сброс формы
@@ -121,6 +147,7 @@ class AddTransactionViewModel extends ChangeNotifier {
     _description = null;
     _error = null;
     _isLoading = false;
+    _editingTransaction = null; // сбрасываем редактируемую транзакцию
     notifyListeners();
   }
 }

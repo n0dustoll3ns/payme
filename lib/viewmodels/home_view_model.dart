@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../domain/participant.dart';
 import '../domain/transaction.dart';
 import '../domain/balance_calculator.dart';
@@ -121,6 +122,27 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> updateTransaction(Transaction updatedTransaction) async {
+    final index = _transactions.indexWhere((t) => t.id == updatedTransaction.id);
+    if (index == -1) {
+      _setError('Транзакция не найдена');
+      return;
+    }
+
+    final oldTransaction = _transactions[index];
+    _transactions[index] = updatedTransaction;
+
+    try {
+      await _repository.saveList(StorageKeys.transactions, _transactions, (t) => t.toJson());
+      _clearError();
+      notifyListeners();
+    } catch (e) {
+      _transactions[index] = oldTransaction;
+      _setError('Ошибка обновления транзакции: $e');
+      notifyListeners();
+    }
+  }
+
   Future<void> deleteTransaction(Transaction transaction) async {
     _transactions.remove(transaction);
 
@@ -153,7 +175,7 @@ class HomeViewModel extends ChangeNotifier {
     );
   }
 
-  Future<void> showAddTransactionDialog(BuildContext context) async {
+  Future<void> showAddTransactionDialog(BuildContext context, {Transaction? transaction}) async {
     // Проверяем, что есть минимум 2 участника
     if (participants.length < 2) {
       ScaffoldMessenger.of(
@@ -162,15 +184,24 @@ class HomeViewModel extends ChangeNotifier {
       return;
     }
 
-    final transaction = await showModalBottomSheet<Transaction>(
+    final result = await showModalBottomSheet<Transaction>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddTransactionBottomSheet(participants: participants),
+      builder: (context) => AddTransactionBottomSheet(
+        participants: participants,
+        transaction: transaction, // передаем транзакцию для редактирования
+      ),
     );
 
-    if (transaction != null) {
-      await addTransaction(transaction);
+    if (result != null) {
+      if (transaction != null) {
+        // Обновляем существующую транзакцию
+        await updateTransaction(result);
+      } else {
+        // Добавляем новую транзакцию
+        await addTransaction(result);
+      }
     }
   }
 
@@ -252,7 +283,7 @@ class HomeViewModel extends ChangeNotifier {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const BalancesModal(),
+      builder: (context) => ChangeNotifierProvider.value(value: this, child: const BalancesModal()),
     );
   }
 
