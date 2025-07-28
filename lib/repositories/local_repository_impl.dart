@@ -3,8 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'local_repository_interface.dart';
 
 class LocalRepositoryImpl implements LocalRepositoryInterface {
-  static const String _separator = '|||';
-
   @override
   Future<void> save<T>(String key, T model, Map<String, dynamic> Function(T) toJson) async {
     final prefs = await SharedPreferences.getInstance();
@@ -15,9 +13,9 @@ class LocalRepositoryImpl implements LocalRepositoryInterface {
   @override
   Future<void> saveList<T>(String key, List<T> models, Map<String, dynamic> Function(T) toJson) async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStrings = models.map((model) => jsonEncode(toJson(model))).toList();
-    final combinedString = jsonStrings.join(_separator);
-    await prefs.setString(key, combinedString);
+    final jsonArray = models.map((model) => toJson(model)).toList();
+    final jsonString = jsonEncode(jsonArray);
+    await prefs.setString(key, jsonString);
   }
 
   @override
@@ -41,19 +39,18 @@ class LocalRepositoryImpl implements LocalRepositoryInterface {
   @override
   Future<List<T>> readList<T>(String key, T Function(Map<String, dynamic>) fromJson) async {
     final prefs = await SharedPreferences.getInstance();
-    final combinedString = prefs.getString(key);
+    final jsonString = prefs.getString(key);
 
-    if (combinedString == null || combinedString.isEmpty) {
+    if (jsonString == null || jsonString.isEmpty) {
       return [];
     }
 
     try {
-      final jsonStrings = combinedString.split(_separator);
+      final jsonArray = jsonDecode(jsonString) as List<dynamic>;
       final models = <T>[];
 
-      for (final jsonString in jsonStrings) {
-        if (jsonString.isNotEmpty) {
-          final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
+      for (final jsonMap in jsonArray) {
+        if (jsonMap is Map<String, dynamic>) {
           models.add(fromJson(jsonMap));
         }
       }
