@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/home_view_model.dart';
+import '../widgets/balances_tab.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,7 +14,7 @@ class HomeScreen extends StatelessWidget {
       },
       builder: (context, _) {
         return DefaultTabController(
-          length: 2,
+          length: 3,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('PayMe'),
@@ -22,6 +23,7 @@ class HomeScreen extends StatelessWidget {
                 tabs: [
                   Tab(icon: Icon(Icons.people), text: 'Участники'),
                   Tab(icon: Icon(Icons.receipt), text: 'Транзакции'),
+                  Tab(icon: Icon(Icons.account_balance), text: 'Балансы'),
                 ],
               ),
             ),
@@ -31,18 +33,32 @@ class HomeScreen extends StatelessWidget {
                 ParticipantsTab(),
                 // Вкладка транзакций
                 TransactionsTab(),
+                // Вкладка балансов
+                BalancesTab(),
               ],
             ),
             floatingActionButton: Builder(
               builder: (context) {
+                final viewModel = context.read<HomeViewModel>();
+
                 final isLoading = context.select<HomeViewModel, bool>((vm) => vm.isLoading);
                 final hasParticipants = context.select<HomeViewModel, bool>((vm) => vm.hasParticipants);
                 final hasTransactions = context.select<HomeViewModel, bool>((vm) => vm.transactions.isNotEmpty);
-                final viewModel = context.read<HomeViewModel>();
 
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    // Кнопка для быстрого доступа к балансам
+                    if (hasParticipants && hasTransactions)
+                      FloatingActionButton(
+                        onPressed: isLoading ? null : () => viewModel.showBalancesModal(context),
+                        heroTag: 'show_balances',
+                        backgroundColor: Colors.blue,
+                        child: const Icon(Icons.account_balance_wallet),
+                      ),
+                    if (hasParticipants && hasTransactions) const SizedBox(width: 16),
+
+                    // Кнопка добавления транзакции
                     if (hasParticipants)
                       FloatingActionButton(
                         onPressed: isLoading ? null : () => viewModel.showAddTransactionDialog(context),
@@ -50,8 +66,9 @@ class HomeScreen extends StatelessWidget {
                         backgroundColor: Colors.green,
                         child: const Icon(Icons.receipt),
                       ),
-                    const SizedBox(width: 16),
-                    // Показываем кнопку добавления участника только если нет транзакций
+                    if (hasParticipants) const SizedBox(width: 16),
+
+                    // Кнопка добавления участника (только если нет транзакций)
                     if (!hasTransactions)
                       FloatingActionButton(
                         onPressed: isLoading ? null : () => viewModel.showAddParticipantDialog(context),

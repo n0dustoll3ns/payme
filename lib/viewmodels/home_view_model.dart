@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../domain/participant.dart';
 import '../domain/transaction.dart';
+import '../domain/balance_calculator.dart';
 import '../repositories/local_repository_impl.dart';
 import '../repositories/storage_keys.dart';
 import '../widgets/add_participant_bottom_sheet.dart';
 import '../widgets/add_transaction_bottom_sheet.dart';
+import '../widgets/balances_modal.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final LocalRepositoryImpl _repository = LocalRepositoryImpl();
@@ -26,6 +29,13 @@ class HomeViewModel extends ChangeNotifier {
   // Геттеры для транзакций
   List<Transaction> get transactions => _transactions;
   bool get hasParticipants => _participants.isNotEmpty;
+
+  // Геттеры для балансов
+  Map<String, double> get balances => BalanceCalculator.calculateBalances(_participants, _transactions);
+  List<Debt> get debts => BalanceCalculator.calculateDebts(_participants, _transactions);
+  double get totalAmount => BalanceCalculator.getTotalAmount(_transactions);
+  int get activeParticipantsCount => BalanceCalculator.getActiveParticipantsCount(_participants, _transactions);
+  bool get hasDebts => debts.isNotEmpty;
 
   init() async {
     _setLoading(true);
@@ -218,7 +228,32 @@ class HomeViewModel extends ChangeNotifier {
 
     if (confirmed == true) {
       await deleteTransaction(transaction);
+      notifyListeners();
     }
+  }
+
+  Future<void> showBalancesModal(BuildContext context) async {
+    // Проверяем, что есть участники и транзакции
+    if (participants.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Нет участников для расчета балансов'), backgroundColor: Colors.orange));
+      return;
+    }
+
+    if (transactions.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Нет транзакций для расчета балансов'), backgroundColor: Colors.orange));
+      return;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const BalancesModal(),
+    );
   }
 
   // Вспомогательные методы
