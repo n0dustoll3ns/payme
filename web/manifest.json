@@ -1,7 +1,7 @@
 {
   "name": "PayMe - Подсчет расходов и долгов",
   "short_name": "PayMe",
-  "start_url": ".",
+  "start_url": "/payme/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#0175C2",

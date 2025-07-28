@@ -11,7 +11,7 @@ echo "📋 Текущая ветка: $CURRENT_BRANCH"
 
 # Собираем веб-приложение
 echo "🔨 Собираем Flutter веб-приложение..."
-flutter build web --release
+flutter build web --release --base-href /payme/
 
 # Создаем временную директорию для собранных файлов
 TEMP_DIR=$(mktemp -d)
@@ -21,9 +21,13 @@ echo "📁 Временная директория: $TEMP_DIR"
 echo "📋 Копируем собранные файлы..."
 cp -r build/web/* "$TEMP_DIR/"
 
+# Копируем .nojekyll файл
+echo "📋 Копируем .nojekyll файл..."
+cp web/.nojekyll "$TEMP_DIR/"
+
 # Переключаемся на ветку gh-pages
 echo "🔄 Переключаемся на ветку gh-pages..."
-git checkout gh-pages 2>/dev/null || git checkout -b gh-pages
+git checkout gh-pages
 
 # Очищаем ветку gh-pages
 echo "🧹 Очищаем ветку gh-pages..."
