@@ -19,7 +19,9 @@ class _AddParticipantBottomSheetState extends State<AddParticipantBottomSheet> {
   void initState() {
     super.initState();
     // Устанавливаем фокус после построения виджета
-    _nameFocusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nameFocusNode.requestFocus();
+    });
   }
 
   @override
