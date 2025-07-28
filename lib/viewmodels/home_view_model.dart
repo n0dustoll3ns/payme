@@ -129,6 +129,14 @@ class HomeViewModel extends ChangeNotifier {
 
   // Методы для работы с UI
   Future<void> showAddParticipantDialog(BuildContext context) async {
+    // Проверяем, что нет транзакций
+    if (transactions.isNotEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Нельзя добавлять участников при наличии транзакций'), backgroundColor: Colors.orange));
+      return;
+    }
+
     await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -159,6 +167,18 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> showDeleteParticipantDialog(BuildContext context, Participant participant) async {
+    // Проверяем, участвует ли участник в транзакциях
+    final isParticipantInTransactions = _transactions.any(
+      (transaction) => transaction.payerId == participant.id || transaction.participantAmounts.containsKey(participant.id),
+    );
+
+    if (isParticipantInTransactions) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Нельзя удалить участника, который участвует в транзакциях'), backgroundColor: Colors.orange));
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

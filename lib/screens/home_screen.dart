@@ -37,6 +37,7 @@ class HomeScreen extends StatelessWidget {
               builder: (context) {
                 final isLoading = context.select<HomeViewModel, bool>((vm) => vm.isLoading);
                 final hasParticipants = context.select<HomeViewModel, bool>((vm) => vm.hasParticipants);
+                final hasTransactions = context.select<HomeViewModel, bool>((vm) => vm.transactions.isNotEmpty);
                 final viewModel = context.read<HomeViewModel>();
 
                 return Row(
@@ -50,11 +51,13 @@ class HomeScreen extends StatelessWidget {
                         child: const Icon(Icons.receipt),
                       ),
                     const SizedBox(width: 16),
-                    FloatingActionButton(
-                      onPressed: isLoading ? null : () => viewModel.showAddParticipantDialog(context),
-                      heroTag: 'add_participant',
-                      child: const Icon(Icons.add),
-                    ),
+                    // Показываем кнопку добавления участника только если нет транзакций
+                    if (!hasTransactions)
+                      FloatingActionButton(
+                        onPressed: isLoading ? null : () => viewModel.showAddParticipantDialog(context),
+                        heroTag: 'add_participant',
+                        child: const Icon(Icons.add),
+                      ),
                   ],
                 );
               },
@@ -75,6 +78,7 @@ class ParticipantsTab extends StatelessWidget {
 
     final participants = context.watch<HomeViewModel>().participants;
     final isLoading = context.watch<HomeViewModel>().isLoading;
+    final hasTransactions = context.watch<HomeViewModel>().transactions.isNotEmpty;
 
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -97,29 +101,81 @@ class ParticipantsTab extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: ListView.builder(
-        itemCount: participants.length,
-        itemBuilder: (context, index) {
-          final participant = participants[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text(
-                  participant.name.isNotEmpty ? participant.name[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
+      child: Column(
+        children: [
+          // Показываем предупреждение, если есть транзакции
+          if (hasTransactions)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
               ),
-              title: Text(participant.name.isNotEmpty ? participant.name : 'Без имени', style: const TextStyle(fontWeight: FontWeight.w500)),
-              subtitle: Text('ID: ${participant.id}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => viewModel.showDeleteParticipantDialog(context, participant),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Нельзя добавлять участников при наличии транзакций',
+                      style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
+          Expanded(
+            child: ListView.builder(
+              itemCount: participants.length,
+              itemBuilder: (context, index) {
+                final participant = participants[index];
+                final hasTransactions = context.watch<HomeViewModel>().transactions.isNotEmpty;
+
+                // Проверяем, участвует ли участник в транзакциях
+                final isParticipantInTransactions =
+                    hasTransactions &&
+                    context.watch<HomeViewModel>().transactions.any(
+                      (transaction) => transaction.payerId == participant.id || transaction.participantAmounts.containsKey(participant.id),
+                    );
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isParticipantInTransactions ? Colors.grey : Colors.blue,
+                      child: Text(
+                        participant.name.isNotEmpty ? participant.name[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    title: Text(
+                      participant.name.isNotEmpty ? participant.name : 'Без имени',
+                      style: TextStyle(fontWeight: FontWeight.w500, color: isParticipantInTransactions ? Colors.grey[600] : null),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ID: ${participant.id}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        if (isParticipantInTransactions)
+                          Text(
+                            'Участвует в транзакциях',
+                            style: TextStyle(color: Colors.orange[700], fontSize: 12, fontWeight: FontWeight.w500),
+                          ),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete_outline, color: isParticipantInTransactions ? Colors.grey[400] : null),
+                      onPressed: isParticipantInTransactions ? null : () => viewModel.showDeleteParticipantDialog(context, participant),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
